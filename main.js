@@ -10,9 +10,9 @@ const SPA=!!window.DE_SPA;
 
 /* ---------- Carte des soins (source unique des prix) ---------- */
 const CATS=[
- {t:"Soins essentiels",items:[["Soin de visage classique",6000],["Soin de visage anti-taches / acné",8000],["Massage relaxant",8000],["Gommage",8000],["Pédicure",6000],["Manucure",2000],["Épilation crème",2500],["Épilation cire",5000]]},
- {t:"Soins prestige",items:[["Pédicure prestige",10000],["Massage à la pierre chaude",12000],["Vagacial",10000]]},
- {t:"Rituels beauté",items:[["Pédicure + Manucure",7000],["Soin de visage + Gommage + Massage + Pédicure Manucure",26000],["Soin de visage + Pédicure Manucure + Gommage",20000],["Soin de visage + Pédicure Manucure + Massage",20000],["Soin de visage + Pédicure prestige + Gommage + Massage + Vagacial",35000],["Soin de visage + Pédicure prestige + Gommage + Massage",30000]]}
+ {t:"Nos soins essentiels",items:[["Soin de visage classique",6000],["Soin de visage anti taches / acné",8000],["Massage relaxant",8000],["Gommage",8000],["Pédicure",6000],["Manucure",2000],["Épilation crème",2500],["Épilation cire",5000]]},
+ {t:"Nos soins prestige",items:[["Pédicure prestige",10000],["Massage à la pierre chaude",12000],["Vagacial",10000]]},
+ {t:"Nos rituels beauté",items:[["Pédicure + Manucure",7000],["Soin de visage + Gommage + Massage + Pédicure Manucure",26000],["Soin de visage + Pédicure Manucure + Gommage",20000],["Soin de visage + Pédicure Manucure + Massage",20000],["Soin de visage + Pédicure prestige + Gommage + Massage + Vagacial",35000],["Soin de visage + Pédicure prestige + Gommage + Massage",30000]]}
 ];
 const PRICE={};CATS.forEach(c=>c.items.forEach(([n,p])=>PRICE[n]=p));
 
@@ -151,8 +151,6 @@ if(hero&&slides.length>1){
 
 /* ---------- En-tête au défilement ---------- */
 const head=$(".site-head");
-const onScroll=()=>head.classList.toggle("scrolled",scrollY>24);
-addEventListener("scroll",onScroll,{passive:true});onScroll();
 
 /* ---------- Sous-navigation de la carte ---------- */
 $$("[data-scroll]").forEach(b=>b.addEventListener("click",()=>{const t=document.getElementById(b.dataset.scroll);if(t)t.scrollIntoView({behavior:RM?"auto":"smooth",block:"start"})}));
@@ -162,19 +160,107 @@ if(subBtns.length&&"IntersectionObserver" in window){
   subBtns.forEach(b=>{const t=document.getElementById(b.dataset.scroll);if(t)so.observe(t)});
 }
 
-/* ---------- Apparitions ---------- */
-const targets=$$(".rv,.rv-img");
-if("IntersectionObserver" in window&&!RM){
-  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target)}}),{threshold:.12,rootMargin:"0px 0px -6% 0px"});
+/* ---------- Animations ---------- */
+const root=document.documentElement,FINE=matchMedia("(pointer: fine)").matches;
+const PT=root.classList.contains("first")?1550:400;
+if(root.classList.contains("first"))setTimeout(()=>root.classList.remove("first"),4200);
+
+// Titres : chaque mot monte derrière un cache
+function split(el){
+  let i=0;
+  const walk=n=>[...n.childNodes].forEach(c=>{
+    if(c.nodeType===3){
+      const f=document.createDocumentFragment();
+      c.textContent.split(/(\s+)/).forEach(t=>{
+        if(!t)return;
+        if(/^\s+$/.test(t)){f.appendChild(document.createTextNode(t));return}
+        const w=document.createElement("span"),wi=document.createElement("span");
+        w.className="w";wi.className="wi";wi.style.setProperty("--i",i++);wi.textContent=t;w.appendChild(wi);f.appendChild(w);
+      });
+      c.replaceWith(f);
+    }else if(c.nodeType===1&&c.tagName!=="BR")walk(c);
+  });
+  walk(el);el.classList.add("wsplit");
+  if(!el.classList.contains("hx")&&!el.classList.contains("rv"))el.classList.add("rv");
+}
+if(!RM){
+  $$(".t-hero,.t-1,.t-2,.quote blockquote").forEach(split);
+  $$(".site-foot .foot-top>*").forEach((el,k)=>el.classList.add("rv","d"+Math.min(k,3)));
+}
+
+// Apparitions au défilement, avec un léger décalage entre éléments voisins
+const targets=$$(".rv");
+// les images (rognées tant qu'elles sont cachées) sont suivies par leur position, pas par IntersectionObserver
+let imgs=$$(".rv-img"),imgsOn=false;
+function checkImgs(){if(!imgsOn||!imgs.length)return;const vh=innerHeight;let k=0;
+  imgs=imgs.filter(el=>{const r=el.getBoundingClientRect();if(!r.height&&!r.width)return true;if(r.top<vh*.9&&r.bottom>0){el.style.transitionDelay=k*110+"ms";const im=$("img",el);if(im)im.style.transitionDelay=k*110+"ms";k++;el.classList.add("in");setTimeout(()=>{el.style.transitionDelay="";if(im)im.style.transitionDelay=""},3200);return false}return true})}
+function reveal(){
+  imgsOn=true;
+  if(!("IntersectionObserver" in window)||RM){targets.forEach(el=>el.classList.add("in"));imgs.forEach(el=>el.classList.add("in"));imgs=[];return}
+  checkImgs();
+  const io=new IntersectionObserver(es=>{let k=0;es.forEach(e=>{
+    if(!e.isIntersecting)return;const el=e.target;
+    if(el.classList.contains("wsplit"))el.style.setProperty("--bd",k*90+"ms");
+    else if(!/\bd[1-4]\b/.test(el.className)&&k){el.style.transitionDelay=k*90+"ms";setTimeout(()=>el.style.transitionDelay="",2600)}
+    k++;el.classList.add("in");io.unobserve(el);
+  })},{threshold:.12,rootMargin:"0px 0px -6% 0px"});
   targets.forEach(el=>io.observe(el));
-}else targets.forEach(el=>el.classList.add("in"));
+}
+setTimeout(reveal,RM?0:Math.max(0,PT-250));
+
+// Prix qui défilent jusqu'à leur valeur
+const counters=$$(".price-line b,.rit .price");
+if(!RM&&"IntersectionObserver" in window){
+  const run=el=>{
+    const tn=[...el.childNodes].find(n=>n.nodeType===3&&/\d/.test(n.textContent));if(!tn)return;
+    const orig=tn.textContent,end=+orig.replace(/\D/g,""),sep=(orig.match(/\d(\D)\d/)||[," "," "])[1];if(!end)return;
+    const f=n=>String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,sep),t0=performance.now(),D=1700;
+    const step=t=>{const p=Math.min(1,(t-t0)/D);tn.textContent=p<1?f(end*(1-Math.pow(1-p,4))):orig;if(p<1)requestAnimationFrame(step)};
+    tn.textContent=f(0);requestAnimationFrame(step);
+  };
+  const co=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){co.unobserve(e.target);setTimeout(()=>run(e.target),250)}}),{threshold:.6});
+  setTimeout(()=>counters.forEach(el=>co.observe(el)),PT);
+}
+
+// Parallaxe douce, hero qui s'efface, en-tête qui se retire, filet de progression
+const pxEls=RM?[]:$$(".quote>img,.signature .ph img,.page-head .ph img,.stack .a img,.cat .ph img");
+pxEls.forEach(i=>i.classList.add("px"));
+const heroEl=$(".hero");
+let lastY=scrollY,ticking=false,away=false;
+function frame(){
+  ticking=false;const vh=innerHeight,y=scrollY;
+  pxEls.forEach(img=>{const r=img.parentElement.getBoundingClientRect();if(r.bottom<-80||r.top>vh+80||!r.height)return;
+    const p=(r.top+r.height/2-vh/2)/(vh/2+r.height/2);img.style.setProperty("--py",(-p*r.height*.06).toFixed(1)+"px")});
+  if(heroEl&&!RM&&y<vh*1.3&&heroEl.offsetParent){heroEl.style.setProperty("--hy",(y*.3).toFixed(1)+"px");heroEl.style.setProperty("--hc",(y*.14).toFixed(1)+"px");heroEl.style.setProperty("--ho",Math.max(0,1-y/(vh*.7)).toFixed(3))}
+  const max=document.documentElement.scrollHeight-vh;head.style.setProperty("--sp",max>0?Math.min(1,y/max).toFixed(4):0);
+  head.classList.toggle("scrolled",y>24);
+  if(!RM&&!document.body.classList.contains("lock")){
+    if(y>360&&y>lastY+6)away=true;else if(y<lastY-6||y<=360)away=false;
+    head.classList.toggle("away",away);document.body.classList.toggle("head-away",away);
+  }
+  lastY=y;checkImgs();
+}
+const onScroll=()=>{if(!ticking){ticking=true;requestAnimationFrame(frame)}};
+addEventListener("scroll",onScroll,{passive:true});addEventListener("resize",onScroll);frame();
+
+// Boutons qui suivent légèrement la souris
+if(FINE&&!RM)$$(".btn-primary,.btn-light,.btn-outline").forEach(b=>{
+  b.classList.add("mag");
+  b.addEventListener("mousemove",e=>{const r=b.getBoundingClientRect();b.style.translate=`${(((e.clientX-r.left)/r.width-.5)*10).toFixed(1)}px ${(((e.clientY-r.top)/r.height-.5)*8).toFixed(1)}px`});
+  b.addEventListener("mouseleave",()=>b.style.translate="");
+});
 
 /* ---------- Navigation ---------- */
 function markNav(){const c=current();$$("[data-nav]").forEach(a=>{const on=a.dataset.nav===c;a.classList.toggle("on",on);if(on)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")})}
 if(SPA){
   const show=()=>{const c=current();$$("[data-page]").forEach(p=>p.hidden=p.dataset.page!==c);markNav();menu(false);window.scrollTo(0,0);sync();
     const m=$("main");m.style.animation="none";void m.offsetWidth;m.style.animation=""};
-  addEventListener("hashchange",show);show();
+  addEventListener("hashchange",()=>{
+    root.classList.remove("first");
+    if(RM){show();return}
+    document.body.classList.add("leaving");
+    setTimeout(()=>{show();document.body.classList.remove("leaving")},640);
+  });show();
 }else{
   markNav();sync();
   // Transition douce entre les pages
@@ -182,7 +268,7 @@ if(SPA){
     const a=e.target.closest("a[href]");if(!a||RM||e.defaultPrevented||e.metaKey||e.ctrlKey||e.shiftKey||a.target==="_blank")return;
     const url=new URL(a.href,location.href);
     if(url.origin!==location.origin||url.pathname===location.pathname||!/\.html$|\/$/.test(url.pathname))return;
-    e.preventDefault();document.body.classList.add("leaving");setTimeout(()=>location.href=url.href,260);
+    e.preventDefault();root.classList.remove("first");document.body.classList.add("leaving");setTimeout(()=>location.href=url.href,620);
   });
   addEventListener("pageshow",ev=>{if(ev.persisted)document.body.classList.remove("leaving")});
 }
