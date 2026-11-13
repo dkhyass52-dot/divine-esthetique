@@ -79,6 +79,7 @@ if(form)form.addEventListener("submit",e=>{
   if(!name)return fail("Indiquez votre nom pour que l'institut sache qui réserve.",nm);
   if(!d.value||d.value<d.min)return fail("Choisissez une date à partir d'aujourd'hui.",d);
   if(!time)return fail("Indiquez l'heure souhaitée.",$("#f-time"));
+  if(time<"08:00"||time>"19:30")return fail("Nous sommes ouverts de 8h00 à 19h30 : choisissez une heure dans ce créneau.",$("#f-time"));
   err.hidden=true;
   const tot=picked.reduce((s,n)=>s+PRICE[n],0);
   const [y,m,dd]=d.value.split("-").map(Number);
